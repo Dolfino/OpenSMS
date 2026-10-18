@@ -120,8 +120,32 @@ spec:
     - hosts:
         - sms.ideiasmkt.com.br
       secretName: opensms-pulse-tls
+    - hosts:
+        - qez.com.br
+        - sms.qez.com.br
+      secretName: qez-com-br-tls
   rules:
     - host: sms.ideiasmkt.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: opensms-pulse-service
+                port:
+                  number: 80
+    - host: qez.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: opensms-pulse-service
+                port:
+                  number: 80
+    - host: sms.qez.com.br
       http:
         paths:
           - path: /
