@@ -10,6 +10,8 @@ import secrets
 import datetime
 from typing import Dict, Any, List, Optional
 
+from core.timezone import get_brazil_now
+
 
 class LinkShortener:
     def __init__(self, storage_path: str = "data/links.json"):
@@ -63,7 +65,7 @@ class LinkShortener:
             "target_url": target_url,
             "title": title or target_url[:40],
             "clicks": 0,
-            "created_at": datetime.datetime.now().isoformat(),
+            "created_at": get_brazil_now().isoformat(),
             "last_clicked_at": None,
         }
 
@@ -76,7 +78,7 @@ class LinkShortener:
         code = code.lower()
         if code in self.links:
             self.links[code]["clicks"] += 1
-            self.links[code]["last_clicked_at"] = datetime.datetime.now().isoformat()
+            self.links[code]["last_clicked_at"] = get_brazil_now().isoformat()
             self._save()
             return self.links[code]["target_url"]
         return None

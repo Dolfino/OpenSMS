@@ -14,6 +14,7 @@ from core.gsm import sanitize_for_gsm7, calculate_sms_segments
 from core.spintax import analyze_template_variations
 from core.opt_out import OptOutManager, normalize_phone_br
 from core.shortener import LinkShortener
+from core.timezone import get_brazil_now
 from services.opensms_client import OpenSmsClient
 from services.queue_manager import QueueManager
 from models.schemas import (
@@ -110,7 +111,7 @@ async def send_single_sms(req: SingleSmsRequest):
         "status": status_str,
         "error": result.get("error"),
         "campaign_id": None,
-        "timestamp": datetime.datetime.now().isoformat()
+        "timestamp": get_brazil_now().isoformat()
     })
 
     if not result["success"]:

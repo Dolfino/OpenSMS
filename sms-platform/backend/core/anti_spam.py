@@ -8,6 +8,9 @@ import datetime
 from typing import Tuple
 
 
+from core.timezone import get_brazil_now
+
+
 class AntiSpamPolicy:
     def __init__(
         self,
@@ -41,12 +44,12 @@ class AntiSpamPolicy:
         self.next_batch_pause = random.randint(self.pause_every_min, self.pause_every_max)
         self.sent_since_last_pause = 0
         self.daily_sent_count = 0
-        self.last_reset_day = datetime.date.today()
+        self.last_reset_day = get_brazil_now().date()
 
     def check_working_hours(self, now: datetime.datetime | None = None) -> Tuple[bool, str]:
-        """Verifica se o momento atual esta dentro da janela comercial permitida."""
+        """Verifica se o momento atual esta dentro da janela comercial permitida (Horário de Brasília)."""
         if now is None:
-            now = datetime.datetime.now()
+            now = get_brazil_now()
 
         # Checa domingo (weekday 6)
         if now.weekday() == 6 and not self.allow_sundays:
@@ -66,8 +69,8 @@ class AntiSpamPolicy:
         Calcula o proximo delay (em segundos) antes do envio:
         Retorna: (tempo_de_espera, is_long_pause, motivo)
         """
-        # Checa reset diário
-        today = datetime.date.today()
+        # Checa reset diário baseado no dia do Brasil
+        today = get_brazil_now().date()
         if today != self.last_reset_day:
             self.daily_sent_count = 0
             self.last_reset_day = today

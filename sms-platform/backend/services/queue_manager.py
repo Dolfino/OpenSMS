@@ -14,6 +14,7 @@ from core.gsm import sanitize_for_gsm7, calculate_sms_segments
 from core.spintax import render_message, analyze_template_variations
 from core.anti_spam import AntiSpamPolicy
 from core.opt_out import OptOutManager, normalize_phone_br
+from core.timezone import get_brazil_now
 from services.opensms_client import OpenSmsClient
 from models.schemas import CampaignCreateRequest, ContactItem
 
@@ -52,12 +53,12 @@ class QueueManager:
 
     def add_log(self, entry: Dict[str, Any]):
         if not entry.get("timestamp"):
-            entry["timestamp"] = datetime.datetime.now().isoformat()
+            entry["timestamp"] = get_brazil_now().isoformat()
         self.logs.append(entry)
         self._save_logs()
 
     def get_today_sent_count(self) -> int:
-        today_prefix = datetime.date.today().isoformat()
+        today_prefix = get_brazil_now().date().isoformat()
         count = 0
         for log in self.logs:
             if log.get("status") == "sent":
@@ -110,8 +111,8 @@ class QueueManager:
             "blacklisted": 0,
             "status": "queued",
             "current_status_msg": "Aguardando inicio...",
-            "created_at": datetime.datetime.now().isoformat(),
-            "updated_at": datetime.datetime.now().isoformat()
+            "created_at": get_brazil_now().isoformat(),
+            "updated_at": get_brazil_now().isoformat()
         }
         self.campaigns[campaign_id] = campaign
 
@@ -142,7 +143,7 @@ class QueueManager:
                         "status": "blacklisted",
                         "error": "Contato presente na lista de descadastro (LGPD)",
                         "campaign_id": campaign_id,
-                        "timestamp": datetime.datetime.now().isoformat()
+                        "timestamp": get_brazil_now().isoformat()
                     })
                     continue
 
@@ -197,10 +198,10 @@ class QueueManager:
                     "status": status_str,
                     "error": error_msg,
                     "campaign_id": campaign_id,
-                    "timestamp": datetime.datetime.now().isoformat()
+                    "timestamp": get_brazil_now().isoformat()
                 })
 
-                camp["updated_at"] = datetime.datetime.now().isoformat()
+                camp["updated_at"] = get_brazil_now().isoformat()
 
             camp["status"] = "completed"
             camp["current_status_msg"] = "Campanha finalizada com sucesso!"

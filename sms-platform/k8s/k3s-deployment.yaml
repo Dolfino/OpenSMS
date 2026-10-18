@@ -25,6 +25,7 @@ data:
   ALLOWED_START_HOUR: "8"
   ALLOWED_END_HOUR: "20"
   DAILY_LIMIT_PER_SIM: "500"
+  TZ: "America/Sao_Paulo"
 ---
 apiVersion: v1
 kind: Secret

@@ -1144,8 +1144,14 @@
           let dateStr = '-';
           if (l.timestamp) {
             try {
-              const d = new Date(l.timestamp);
+              let ts = l.timestamp;
+              // Se o timestamp não tiver indicador de fuso, assume UTC e converte para o horário local de Brasília
+              if (!ts.endsWith('Z') && !ts.includes('+') && !ts.slice(10).includes('-')) {
+                ts = ts + 'Z';
+              }
+              const d = new Date(ts);
               dateStr = d.toLocaleString('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric',
