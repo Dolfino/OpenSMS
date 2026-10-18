@@ -3,6 +3,8 @@ queue_manager.py - Gerenciador de Fila Assincrona e Execucao de Campanhas em Bac
 Orquestra o rate limiting estocastico, pausas e protecoes anti-spam.
 """
 
+import os
+import json
 import asyncio
 import uuid
 import datetime
@@ -17,14 +19,52 @@ from models.schemas import CampaignCreateRequest, ContactItem
 
 
 class QueueManager:
-    def __init__(self, client: OpenSmsClient, opt_out: OptOutManager):
+    def __init__(self, client: OpenSmsClient, opt_out: OptOutManager, storage_path: str = "data/logs.json"):
         self.client = client
         self.opt_out = opt_out
         self.policy = AntiSpamPolicy()
+        self.storage_path = storage_path
 
+        os.makedirs(os.path.dirname(self.storage_path) if os.path.dirname(self.storage_path) else ".", exist_ok=True)
         self.campaigns: Dict[str, Dict[str, Any]] = {}
-        self.logs: List[Dict[str, Any]] = []
+        self.logs: List[Dict[str, Any]] = self._load_logs()
         self.active_tasks: Dict[str, asyncio.Task] = {}
+
+        # Sincroniza contador de envios do dia atual da política anti-spam
+        self.policy.daily_sent_count = self.get_today_sent_count()
+
+    def _load_logs(self) -> List[Dict[str, Any]]:
+        if os.path.exists(self.storage_path):
+            try:
+                with open(self.storage_path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                return []
+        return []
+
+    def _save_logs(self):
+        try:
+            with open(self.storage_path, "w", encoding="utf-8") as f:
+                # Armazena até os últimos 2000 disparos para histórico persistente
+                json.dump(self.logs[-2000:], f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"Erro ao salvar logs: {e}")
+
+    def add_log(self, entry: Dict[str, Any]):
+        if not entry.get("timestamp"):
+            entry["timestamp"] = datetime.datetime.now().isoformat()
+        self.logs.append(entry)
+        self._save_logs()
+
+    def get_today_sent_count(self) -> int:
+        today_prefix = datetime.date.today().isoformat()
+        count = 0
+        for log in self.logs:
+            if log.get("status") == "sent":
+                ts = log.get("timestamp", "")
+                if ts and ts.startswith(today_prefix):
+                    count += 1
+        return count
 
     def get_logs(self, limit: int = 100) -> List[Dict[str, Any]]:
         return self.logs[-limit:][::-1]
@@ -93,7 +133,7 @@ class QueueManager:
                 # 2. Verifica se esta na Blacklist (Opt-out)
                 if self.opt_out.is_blacklisted(norm_phone):
                     camp["blacklisted"] += 1
-                    self.logs.append({
+                    self.add_log({
                         "id": str(uuid.uuid4())[:8],
                         "phone": norm_phone,
                         "text": "[BLOQUEADO PELA BLACKLIST / OPT-OUT]",
@@ -148,7 +188,7 @@ class QueueManager:
                     error_msg = result.get("error", "Falha de envio desconhecida")
 
                 # Registra no log
-                self.logs.append({
+                self.add_log({
                     "id": str(uuid.uuid4())[:8],
                     "phone": norm_phone,
                     "text": msg_text,

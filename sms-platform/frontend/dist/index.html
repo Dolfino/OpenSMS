@@ -938,6 +938,7 @@
         if (res.ok) {
           showToast(`✅ SMS entregue com sucesso para ${phone}!`);
           checkHealth();
+          loadLogs();
         } else {
           showToast(`❌ Erro: ${data.detail || 'Falha no envio'}`, true);
         }
@@ -1139,15 +1140,32 @@
           return;
         }
 
-        tbody.innerHTML = logs.map(l => `
+        tbody.innerHTML = logs.map(l => {
+          let dateStr = '-';
+          if (l.timestamp) {
+            try {
+              const d = new Date(l.timestamp);
+              dateStr = d.toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+              });
+            } catch (err) {
+              dateStr = l.timestamp;
+            }
+          }
+          return `
           <tr>
             <td><span class="badge badge-${l.status}">${l.status}</span></td>
             <td><code>${l.phone}</code></td>
-            <td style="max-width:350px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${l.text}</td>
+            <td style="max-width:350px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${l.text}">${l.text}</td>
             <td>${l.char_count} (${l.segments} SMS)</td>
-            <td><small>${l.timestamp ? new Date(l.timestamp).toLocaleTimeString('pt-BR') : '-'}</small></td>
+            <td><small>${dateStr}</small></td>
           </tr>
-        `).join('');
+        `;}).join('');
       } catch (e) {
         console.error(e);
       }

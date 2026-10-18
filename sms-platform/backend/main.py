@@ -3,6 +3,8 @@ main.py - Servidor FastAPI para a Plataforma de Disparos SMS de Alta Entregabili
 """
 
 import os
+import uuid
+import datetime
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -43,7 +45,7 @@ opensms_key = os.getenv("OPENSMS_API_KEY", "")
 
 sms_client = OpenSmsClient(base_url=opensms_url, api_key=opensms_key)
 opt_out_mgr = OptOutManager(storage_path="data/blacklist.json")
-queue_mgr = QueueManager(client=sms_client, opt_out=opt_out_mgr)
+queue_mgr = QueueManager(client=sms_client, opt_out=opt_out_mgr, storage_path="data/logs.json")
 shortener_mgr = LinkShortener(storage_path="data/links.json")
 
 
@@ -53,12 +55,14 @@ shortener_mgr = LinkShortener(storage_path="data/links.json")
 @app.get("/api/health")
 async def health_check():
     is_online, msg = await sms_client.check_health()
+    today_sent = queue_mgr.get_today_sent_count()
+    queue_mgr.policy.daily_sent_count = today_sent
     return {
         "status": "online" if is_online else "degraded",
         "opensms_reachable": is_online,
         "opensms_url": sms_client.base_url,
         "detail": msg,
-        "daily_sent_count": queue_mgr.policy.daily_sent_count,
+        "daily_sent_count": today_sent,
         "daily_limit": queue_mgr.policy.daily_limit,
     }
 
@@ -94,8 +98,11 @@ async def send_single_sms(req: SingleSmsRequest):
     result = await sms_client.send_sms(norm_phone, text)
 
     status_str = "sent" if result["success"] else "failed"
-    queue_mgr.logs.append({
-        "id": "single",
+    if result["success"]:
+        queue_mgr.policy.record_send()
+
+    queue_mgr.add_log({
+        "id": str(uuid.uuid4())[:8],
         "phone": norm_phone,
         "text": text,
         "char_count": metrics["char_count"],
@@ -103,7 +110,7 @@ async def send_single_sms(req: SingleSmsRequest):
         "status": status_str,
         "error": result.get("error"),
         "campaign_id": None,
-        "timestamp": os.getenv("FAKE_TIME", "")
+        "timestamp": datetime.datetime.now().isoformat()
     })
 
     if not result["success"]:
