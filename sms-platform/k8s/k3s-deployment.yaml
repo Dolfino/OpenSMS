@@ -56,8 +56,8 @@ spec:
     spec:
       containers:
         - name: app
-          image: opensms-pulse:latest
-          imagePullPolicy: Never
+          image: ghcr.io/dolfino/opensms-pulse:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
               name: http
