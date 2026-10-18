@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenSMS Pulse - Plataforma de Disparos em Massa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --bg-card: rgba(18, 24, 38, 0.85);
+      --bg-input: #121826;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-focus: #3b82f6;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #8b5cf6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: radial-gradient(circle at 20% 15%, #131c31 0%, #080b12 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Top Navigation */
+    header {
+      background: rgba(11, 15, 25, 0.8);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+    }
+
+    .logo-text h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(to right, #fff, #93c5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .logo-text p {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    .header-status-group {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 0.4rem 0.8rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #34d399;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.9); }
+    }
+
+    .quota-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      padding: 0.4rem 0.8rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Main Container & Tabs */
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 2rem;
+      width: 100%;
+      flex: 1;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+      background: rgba(18, 24, 38, 0.6);
+      padding: 0.35rem;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 2rem;
+      width: fit-content;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      padding: 0.65rem 1.25rem;
+      border-radius: 10px;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: #fff;
+    }
+
+    .tab-btn.active {
+      background: #2563eb;
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
+    }
+
+    /* Tab Panes */
+    .tab-pane {
+      display: none;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 1.75rem;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 900px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    /* Form Elements */
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    input[type="text"], input[type="number"], textarea, select {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      color: #fff;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 110px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      cursor: pointer;
+      font-size: 0.88rem;
+      color: var(--text-main);
+      user-select: none;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+    }
+
+    /* GSM 160 Counter Box */
+    .gsm-meter-box {
+      background: #0f1523;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .gsm-meter-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+
+    .gsm-progress-bg {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 0.4rem;
+    }
+
+    .gsm-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--primary);
+      transition: width 0.15s ease, background-color 0.2s ease;
+    }
+
+    .gsm-status-chips {
+      display: flex;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+    }
+
+    .chip {
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    .chip-gsm7 { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .chip-ucs2 { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+    .chip-segments { background: rgba(255, 255, 255, 0.08); color: var(--text-muted); }
+
+    /* Action Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 0.85rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      box-shadow: none;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+    }
+
+    /* Spintax Helper */
+    .spintax-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .tag-pill {
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      color: #c4b5fd;
+      padding: 0.25rem 0.6rem;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .tag-pill:hover {
+      background: rgba(139, 92, 246, 0.3);
+      color: #fff;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.88rem;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.04);
+      padding: 0.85rem 1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .badge-sent { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .badge-failed { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+    .badge-blacklisted { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .badge-running { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      background: #1e293b;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: none;
+      z-index: 1000;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="logo-container">
+      <div class="logo-icon">📨</div>
+      <div class="logo-text">
+        <h1>OpenSMS Pulse Gateway</h1>
+        <p>Alta Entregabilidade • Anti-Spam • LGPD Ready</p>
+      </div>
+    </div>
+
+    <div class="header-status-group">
+      <div class="quota-badge" id="quotaBadge">
+        <span>Hoje: <strong id="sentToday">0</strong> / 500 SMS</span>
+      </div>
+      <div class="status-badge" id="serverStatusBadge">
+        <div class="status-dot" id="serverStatusDot"></div>
+        <span id="serverStatusText">Conectando...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Body -->
+  <main>
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" id="tabBtnSingle" onclick="switchTab('single')">⚡ Disparo Rápido</button>
+      <button class="tab-btn" id="tabBtnMass" onclick="switchTab('mass')">🚀 Campanhas em Massa</button>
+      <button class="tab-btn" id="tabBtnBlacklist" onclick="switchTab('blacklist')">🛡️ Lista Negra / Opt-out</button>
+      <button class="tab-btn" id="tabBtnLogs" onclick="switchTab('logs')">📜 Histórico de Disparos</button>
+    </nav>
+
+    <!-- Tab 1: Disparo Unitario -->
+    <div id="tabSingle" class="tab-pane active">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Envio Direto de SMS</h2>
+          </div>
+
+          <form id="singleSmsForm" onsubmit="handleSendSingle(event)">
+            <div class="form-group">
+              <label for="singlePhone">Telefone de Destino (com DDD)</label>
+              <input type="text" id="singlePhone" placeholder="+5585999125992" required value="+5585999125992">
+            </div>
+
+            <div class="form-group">
+              <label for="singleText">Mensagem do SMS</label>
+              <textarea id="singleText" placeholder="Digite sua mensagem aqui..." oninput="updateSingleCounter()">Olá! Seu código de validação é 8492. P/ sair responda SAIR</textarea>
+              
+              <!-- GSM-7 Realtime Meter -->
+              <div class="gsm-meter-box">
+                <div class="gsm-meter-header">
+                  <span id="gsmCharCount">0 / 160 caracteres</span>
+                  <span id="gsmRemaining">160 restantes</span>
+                </div>
+                <div class="gsm-progress-bg">
+                  <div class="gsm-progress-fill" id="gsmProgressFill"></div>
+                </div>
+                <div class="gsm-status-chips">
+                  <span class="chip chip-gsm7" id="gsmEncodingChip">Codificação: GSM-7</span>
+                  <span class="chip chip-segments" id="gsmSegmentsChip">1 SMS (1 segmento)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="singleAutoSanitize" checked>
+                Normalizar acentos e emojis automaticamente (Garante GSM-7)
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="singleEnforce160" checked>
+                Travar envio se exceder 160 caracteres (Evita duplicar custo)
+              </label>
+            </div>
+
+            <button type="submit" class="btn" id="btnSendSingle">
+              <span>🚀 Disparar SMS Agora</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Info / Tips Card -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Regras Anti-Bloqueio Ativas</h2>
+          </div>
+          <div style="font-size: 0.9rem; line-height: 1.7; color: var(--text-muted);">
+            <p style="margin-bottom: 0.8rem;">
+              🔒 <strong>Conexão Segura Tailscale:</strong> As mensagens são enviadas diretamente para a porta privada do celular através de túnel criptografado WireGuard.
+            </p>
+            <p style="margin-bottom: 0.8rem;">
+              ⚖️ <strong>Limite GSM-7 de 160 Chars:</strong> O sanitizador substitui caracteres especiais para impedir que o SMS mude para UCS-2 (o que reduziria o limite para apenas 70 caracteres).
+            </p>
+            <p style="margin-bottom: 0.8rem;">
+              🛡️ <strong>Opt-out LGPD Automático:</strong> Se o número destinatário estiver na lista de bloqueio/Não Perturbe, o envio será cancelado antes de consumir saldo do seu chip.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 2: Campanhas em Massa -->
+    <div id="tabMass" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Criador de Campanha em Massa</h2>
+        </div>
+
+        <form id="massCampaignForm" onsubmit="handleCreateCampaign(event)">
+          <div class="grid-2">
+            <div>
+              <div class="form-group">
+                <label for="campaignName">Nome da Campanha</label>
+                <input type="text" id="campaignName" placeholder="Ex: Aviso de Cobrança / Novidades" required value="Campanha Promocional">
+              </div>
+
+              <div class="form-group">
+                <label>Tags de Variação Rápida (Spintax & Variáveis)</label>
+                <div class="spintax-tags">
+                  <span class="tag-pill" onclick="insertTag('{Olá|Oi|Bom dia}')">+ {Olá|Oi|Bom dia}</span>
+                  <span class="tag-pill" onclick="insertTag('{nome}')">+ {nome}</span>
+                  <span class="tag-pill" onclick="insertTag('{codigo}')">+ {codigo}</span>
+                  <span class="tag-pill" onclick="insertTag('{seu pedido|sua encomenda}')">+ {pedido|encomenda}</span>
+                </div>
+                <label for="campaignTemplate">Template com Spintax</label>
+                <textarea id="campaignTemplate" rows="4" oninput="analyzeMassSpintax()">{Olá|Oi|Prezado} {nome}, seu pedido está pronto para retirada! P/ sair responda SAIR</textarea>
+                
+                <div class="gsm-meter-box" style="margin-top: 0.5rem;">
+                  <div class="gsm-meter-header">
+                    <span id="spintaxStats">Analisando combinações...</span>
+                  </div>
+                  <div class="gsm-status-chips">
+                    <span class="chip chip-gsm7" id="spintaxSafeChip">Variações Seguras: Sim</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="campaignOptOutSuffix">Sufixo de Descadastro Obrigatório (LGPD)</label>
+                <input type="text" id="campaignOptOutSuffix" value=" P/ sair responda SAIR">
+              </div>
+            </div>
+
+            <div>
+              <div class="form-group">
+                <label for="campaignContacts">Lista de Destinatários (1 por linha: Telefone,Nome)</label>
+                <textarea id="campaignContacts" rows="9" placeholder="+5585999125992,David&#10;+5511988887777,Carlos&#10;+5521977776666,Fernanda">+5585999125992,David</textarea>
+                <small style="color: var(--text-dim); display: block; margin-top: 0.3rem;">Formatos aceitos: 85999125992 ou +5585999125992 (com ou sem nome)</small>
+              </div>
+
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="campaignEnforce160" checked>
+                  Bloquear início se alguma variação ultrapassar 160 caracteres
+                </label>
+              </div>
+
+              <button type="submit" class="btn" id="btnStartCampaign" style="width: 100%;">
+                <span>▶ Iniciar Fila da Campanha</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Active Campaigns Table -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Campanhas em Execução & Histórico</h2>
+          <button class="btn btn-secondary" onclick="loadCampaigns()" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">↻ Atualizar</button>
+        </div>
+        <div class="table-container">
+          <table id="campaignsTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Progresso</th>
+                <th>Status Atual</th>
+                <th>Bloqueados (LGPD)</th>
+                <th>Falhas</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="campaignsTableBody">
+              <tr><td colspan="7" style="text-align:center;">Nenhuma campanha em execução</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Lista Negra / Opt-out -->
+    <div id="tabBlacklist" class="tab-pane">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Adicionar Número ao Opt-out</h2>
+          </div>
+          <form onsubmit="handleAddBlacklist(event)">
+            <div class="form-group">
+              <label for="blacklistPhone">Telefone para Bloqueio</label>
+              <input type="text" id="blacklistPhone" placeholder="+5585999125992" required>
+            </div>
+            <div class="form-group">
+              <label for="blacklistReason">Motivo do Bloqueio</label>
+              <input type="text" id="blacklistReason" value="Solicitou descadastro via mensagem (Opt-out)">
+            </div>
+            <button type="submit" class="btn btn-danger">🚫 Bloquear Disparos para este Número</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Lista Negra Ativa (LGPD)</h2>
+            <button class="btn btn-secondary" onclick="loadBlacklist()" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">↻ Atualizar</button>
+          </div>
+          <div class="table-container" style="max-height: 350px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Telefone</th>
+                  <th>Data Bloqueio</th>
+                  <th>Motivo</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody id="blacklistTableBody">
+                <tr><td colspan="4" style="text-align: center;">Carregando lista...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 4: Logs -->
+    <div id="tabLogs" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Log de Disparos em Tempo Real</h2>
+          <button class="btn btn-secondary" onclick="loadLogs()" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">↻ Atualizar</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Telefone</th>
+                <th>Mensagem</th>
+                <th>Caracteres</th>
+                <th>Data / Hora</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody">
+              <tr><td colspan="5" style="text-align: center;">Nenhum disparo registrado ainda.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast">Notificação</div>
+
+  <script>
+    // Tab Switching
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+      if (tab === 'single') {
+        document.getElementById('tabBtnSingle').classList.add('active');
+        document.getElementById('tabSingle').classList.add('active');
+      } else if (tab === 'mass') {
+        document.getElementById('tabBtnMass').classList.add('active');
+        document.getElementById('tabMass').classList.add('active');
+        loadCampaigns();
+        analyzeMassSpintax();
+      } else if (tab === 'blacklist') {
+        document.getElementById('tabBtnBlacklist').classList.add('active');
+        document.getElementById('tabBlacklist').classList.add('active');
+        loadBlacklist();
+      } else if (tab === 'logs') {
+        document.getElementById('tabBtnLogs').classList.add('active');
+        document.getElementById('tabLogs').classList.add('active');
+        loadLogs();
+      }
+    }
+
+    function showToast(msg, isError = false) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.style.borderColor = isError ? '#ef4444' : '#10b981';
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 3500);
+    }
+
+    // Health Check Polling
+    async function checkHealth() {
+      try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        const badge = document.getElementById('serverStatusBadge');
+        const dot = document.getElementById('serverStatusDot');
+        const txt = document.getElementById('serverStatusText');
+        const quota = document.getElementById('sentToday');
+
+        quota.innerText = data.daily_sent_count || 0;
+
+        if (data.opensms_reachable) {
+          badge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+          badge.style.color = '#34d399';
+          dot.style.background = '#10b981';
+          txt.innerText = 'OpenSMS Conectado (Tailscale)';
+        } else {
+          badge.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+          badge.style.color = '#f87171';
+          dot.style.background = '#ef4444';
+          txt.innerText = 'OpenSMS Desconectado';
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // GSM Real-time Counter
+    function updateSingleCounter() {
+      const text = document.getElementById('singleText').value;
+      const count = text.length;
+      const charCountEl = document.getElementById('gsmCharCount');
+      const remainingEl = document.getElementById('gsmRemaining');
+      const progressFill = document.getElementById('gsmProgressFill');
+      const encodingChip = document.getElementById('gsmEncodingChip');
+      const segmentsChip = document.getElementById('gsmSegmentsChip');
+
+      const isNonAscii = /[^\u0000-\u007F]/.test(text.replace(/[áàâãéêíóôõúçÁÀÂÃÉÊÍÓÔÕÚÇ]/g, ''));
+      const maxSegment = isNonAscii ? 70 : 160;
+
+      charCountEl.innerText = `${count} / ${maxSegment} caracteres`;
+      const remaining = Math.max(0, maxSegment - count);
+      remainingEl.innerText = `${remaining} restantes`;
+
+      let pct = Math.min(100, (count / maxSegment) * 100);
+      progressFill.style.width = `${pct}%`;
+
+      if (count > maxSegment) {
+        progressFill.style.background = 'var(--danger)';
+      } else if (count > maxSegment * 0.85) {
+        progressFill.style.background = 'var(--warning)';
+      } else {
+        progressFill.style.background = 'var(--primary)';
+      }
+
+      if (isNonAscii) {
+        encodingChip.className = 'chip chip-ucs2';
+        encodingChip.innerText = 'Codificação: UCS-2 (Limite reduzido: 70 chars)';
+      } else {
+        encodingChip.className = 'chip chip-gsm7';
+        encodingChip.innerText = 'Codificação: GSM-7 (160 caracteres)';
+      }
+
+      const segs = Math.max(1, Math.ceil(count / (isNonAscii ? 67 : 153)));
+      segmentsChip.innerText = `${segs} SMS (${segs} segmento${segs > 1 ? 's' : ''})`;
+    }
+
+    // Single SMS Dispatch
+    async function handleSendSingle(e) {
+      e.preventDefault();
+      const phone = document.getElementById('singlePhone').value;
+      const text = document.getElementById('singleText').value;
+      const autoSanitize = document.getElementById('singleAutoSanitize').checked;
+      const enforce160 = document.getElementById('singleEnforce160').checked;
+      const btn = document.getElementById('btnSendSingle');
+
+      btn.disabled = true;
+      btn.innerText = 'Enviando...';
+
+      try {
+        const res = await fetch('/api/sms/send-single', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: phone,
+            text: text,
+            auto_sanitize_gsm7: autoSanitize,
+            enforce_160_limit: enforce160
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          showToast(`✅ SMS entregue com sucesso para ${phone}!`);
+          checkHealth();
+        } else {
+          showToast(`❌ Erro: ${data.detail || 'Falha no envio'}`, true);
+        }
+      } catch (err) {
+        showToast(`❌ Erro de rede: ${err.message}`, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>🚀 Disparar SMS Agora</span>';
+      }
+    }
+
+    // Mass Spintax Analysis
+    let spintaxTimer = null;
+    function analyzeMassSpintax() {
+      clearTimeout(spintaxTimer);
+      spintaxTimer = setTimeout(async () => {
+        const template = document.getElementById('campaignTemplate').value;
+        try {
+          const res = await fetch('/api/spintax/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ template: template })
+          });
+          const data = await res.json();
+          const statsEl = document.getElementById('spintaxStats');
+          const chipEl = document.getElementById('spintaxSafeChip');
+
+          statsEl.innerText = `Comprimento: Mín ${data.min_length} | Médio ${data.avg_length} | Máx ${data.max_length} caracteres`;
+
+          if (data.safe_within_160) {
+            chipEl.className = 'chip chip-gsm7';
+            chipEl.innerText = '✓ 100% dentro do limite de 160 chars';
+          } else {
+            chipEl.className = 'chip chip-ucs2';
+            chipEl.innerText = `⚠ ${data.samples_exceeding_160} variações ultrapassam 160 caracteres!`;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }, 300);
+    }
+
+    function insertTag(tag) {
+      const ta = document.getElementById('campaignTemplate');
+      ta.value += tag;
+      analyzeMassSpintax();
+    }
+
+    // Create Campaign
+    async function handleCreateCampaign(e) {
+      e.preventDefault();
+      const name = document.getElementById('campaignName').value;
+      const template = document.getElementById('campaignTemplate').value;
+      const optOut = document.getElementById('campaignOptOutSuffix').value;
+      const enforce160 = document.getElementById('campaignEnforce160').checked;
+      const rawContacts = document.getElementById('campaignContacts').value;
+
+      const contacts = rawContacts.split('\n')
+        .map(l => l.trim())
+        .filter(l => l.length > 0)
+        .map(l => {
+          const parts = l.split(',');
+          return {
+            phone: parts[0].trim(),
+            name: parts.length > 1 ? parts[1].trim() : 'Cliente'
+          };
+        });
+
+      if (contacts.length === 0) {
+        showToast('Adicione pelo menos um contato!', true);
+        return;
+      }
+
+      const btn = document.getElementById('btnStartCampaign');
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/campaigns', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name,
+            template: template,
+            contacts: contacts,
+            auto_sanitize_gsm7: true,
+            enforce_160_limit: enforce160,
+            opt_out_suffix: optOut
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          showToast(`Campanha "${name}" iniciada com ${contacts.length} contatos!`);
+          loadCampaigns();
+        } else {
+          showToast(`Erro: ${data.detail}`, true);
+        }
+      } catch (err) {
+        showToast(`Falha: ${err.message}`, true);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function loadCampaigns() {
+      try {
+        const res = await fetch('/api/campaigns');
+        const list = await res.json();
+        const tbody = document.getElementById('campaignsTableBody');
+        if (!list || list.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Nenhuma campanha criada ainda.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = list.map(c => `
+          <tr>
+            <td><code>${c.id}</code></td>
+            <td><strong>${c.name}</strong></td>
+            <td>${c.sent} / ${c.total}</td>
+            <td><span class="badge badge-${c.status}">${c.status}</span><br><small style="color:var(--text-dim);">${c.current_status_msg || ''}</small></td>
+            <td><span class="badge badge-blacklisted">${c.blacklisted}</span></td>
+            <td>${c.failed > 0 ? `<span class="badge badge-failed">${c.failed}</span>` : '0'}</td>
+            <td>
+              ${c.status === 'running' || c.status === 'queued' ? 
+                `<button class="btn btn-danger" style="padding:0.25rem 0.5rem; font-size:0.75rem;" onclick="cancelCampaign('${c.id}')">Cancelar</button>` : 
+                '-'}
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function cancelCampaign(id) {
+      if (!confirm('Deseja cancelar esta campanha?')) return;
+      await fetch(`/api/campaigns/${id}/cancel`, { method: 'POST' });
+      showToast('Campanha cancelada.');
+      loadCampaigns();
+    }
+
+    // Blacklist
+    async function loadBlacklist() {
+      try {
+        const res = await fetch('/api/blacklist');
+        const list = await res.json();
+        const tbody = document.getElementById('blacklistTableBody');
+        if (!list || list.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Nenhum número na lista negra.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = list.map(item => `
+          <tr>
+            <td><code>${item.phone}</code></td>
+            <td>${item.added_at ? new Date(item.added_at).toLocaleDateString('pt-BR') : '-'}</td>
+            <td>${item.reason}</td>
+            <td>
+              <button class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem;" onclick="removeBlacklist('${encodeURIComponent(item.phone)}')">Remover</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function handleAddBlacklist(e) {
+      e.preventDefault();
+      const phone = document.getElementById('blacklistPhone').value;
+      const reason = document.getElementById('blacklistReason').value;
+
+      const res = await fetch('/api/blacklist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, reason })
+      });
+      if (res.ok) {
+        showToast('Número adicionado à lista de Opt-out!');
+        document.getElementById('blacklistPhone').value = '';
+        loadBlacklist();
+      }
+    }
+
+    async function removeBlacklist(phone) {
+      await fetch(`/api/blacklist/${phone}`, { method: 'DELETE' });
+      showToast('Número removido da blacklist.');
+      loadBlacklist();
+    }
+
+    // Logs
+    async function loadLogs() {
+      try {
+        const res = await fetch('/api/logs');
+        const logs = await res.json();
+        const tbody = document.getElementById('logsTableBody');
+        if (!logs || logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhum registro ainda.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = logs.map(l => `
+          <tr>
+            <td><span class="badge badge-${l.status}">${l.status}</span></td>
+            <td><code>${l.phone}</code></td>
+            <td style="max-width:350px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${l.text}</td>
+            <td>${l.char_count} (${l.segments} SMS)</td>
+            <td><small>${l.timestamp ? new Date(l.timestamp).toLocaleTimeString('pt-BR') : '-'}</small></td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Init
+    setInterval(checkHealth, 6000);
+    setInterval(loadCampaigns, 8000);
+    checkHealth();
+    updateSingleCounter();
+  </script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opensms-pulse
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: opensms-pulse-pvc
+  namespace: opensms-pulse
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opensms-pulse-config
+  namespace: opensms-pulse
+data:
+  OPENSMS_URL: "http://<SEU_IP_TAILSCALE>:9292"
+  ALLOWED_START_HOUR: "8"
+  ALLOWED_END_HOUR: "20"
+  DAILY_LIMIT_PER_SIM: "500"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: opensms-pulse-secret
+  namespace: opensms-pulse
+type: Opaque
+stringData:
+  OPENSMS_API_KEY: "<SUA_CHAVE_OPENSMS>"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opensms-pulse-app
+  namespace: opensms-pulse
+  labels:
+    app: opensms-pulse
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: opensms-pulse
+  template:
+    metadata:
+      labels:
+        app: opensms-pulse
+    spec:
+      containers:
+        - name: app
+          image: opensms-pulse:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: opensms-pulse-config
+            - secretRef:
+                name: opensms-pulse-secret
+          volumeMounts:
+            - name: data-volume
+              mountPath: /app/data
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: opensms-pulse-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opensms-pulse-service
+  namespace: opensms-pulse
+spec:
+  type: ClusterIP
+  selector:
+    app: opensms-pulse
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: opensms-pulse-ingress
+  namespace: opensms-pulse
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - sms.ideiasmkt.com.br
+      secretName: opensms-pulse-tls
+  rules:
+    - host: sms.ideiasmkt.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: opensms-pulse-service
+                port:
+                  number: 80

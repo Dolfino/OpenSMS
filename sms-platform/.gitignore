@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+data/*.json
+!data/.gitkeep
+.env
+.DS_Store
+
+# Permitir a pasta do frontend compilado
+!frontend/dist/
+!frontend/dist/**
