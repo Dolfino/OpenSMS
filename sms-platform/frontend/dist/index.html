@@ -503,6 +503,7 @@
     <nav class="nav-tabs">
       <button class="tab-btn active" id="tabBtnSingle" onclick="switchTab('single')">⚡ Disparo Rápido</button>
       <button class="tab-btn" id="tabBtnMass" onclick="switchTab('mass')">🚀 Campanhas em Massa</button>
+      <button class="tab-btn" id="tabBtnShortener" onclick="switchTab('shortener')">🔗 Encurtador de Links</button>
       <button class="tab-btn" id="tabBtnBlacklist" onclick="switchTab('blacklist')">🛡️ Lista Negra / Opt-out</button>
       <button class="tab-btn" id="tabBtnLogs" onclick="switchTab('logs')">📜 Histórico de Disparos</button>
     </nav>
@@ -714,6 +715,63 @@
           </div>
         </div>
       </div>
+    <!-- Tab Encurtador de Links -->
+    <div id="tabShortener" class="tab-pane">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Criar Link Encurtado Rastreado</h2>
+          </div>
+          <form onsubmit="handleCreateLink(event)">
+            <div class="form-group">
+              <label for="linkTargetUrl">URL de Destino Completa</label>
+              <input type="text" id="linkTargetUrl" placeholder="https://chat.whatsapp.com/... ou https://seusite.com" required>
+            </div>
+            <div class="form-group">
+              <label for="linkTitle">Identificador / Título da Campanha (Opcional)</label>
+              <input type="text" id="linkTitle" placeholder="Ex: Grupo VIP WhatsApp, Cupom 20%">
+            </div>
+            <div class="form-group">
+              <label for="linkCustomSlug">Slug Personalizado (Opcional)</label>
+              <input type="text" id="linkCustomSlug" placeholder="Ex: vip, promo, suporte (deixe em branco para código aleatório)">
+            </div>
+            <button type="submit" class="btn" id="btnCreateLink">
+              <span>⚡ Gerar Link Curto Seguro</span>
+            </button>
+          </form>
+
+          <div id="linkCreatedResult" style="display: none; margin-top: 1.5rem; background: #0f1523; border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem;">
+            <label style="color: #34d399; font-weight: 700;">Link Curto Gerado com Sucesso:</label>
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+              <input type="text" id="resultShortUrl" readonly style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">
+              <button class="btn btn-secondary" onclick="copyResultLink()" style="padding: 0.5rem 1rem;">Copiar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Links Ativos & Métricas de Cliques</h2>
+            <button class="btn btn-secondary" onclick="loadLinks()" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">↻ Atualizar</button>
+          </div>
+          <div class="table-container" style="max-height: 380px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Destino</th>
+                  <th>Cliques</th>
+                  <th>Criado Em</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="linksTableBody">
+                <tr><td colspan="5" style="text-align: center;">Carregando links...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Tab 4: Logs -->
@@ -759,6 +817,10 @@
         document.getElementById('tabMass').classList.add('active');
         loadCampaigns();
         analyzeMassSpintax();
+      } else if (tab === 'shortener') {
+        document.getElementById('tabBtnShortener').classList.add('active');
+        document.getElementById('tabShortener').classList.add('active');
+        loadLinks();
       } else if (tab === 'blacklist') {
         document.getElementById('tabBtnBlacklist').classList.add('active');
         document.getElementById('tabBlacklist').classList.add('active');
@@ -1087,6 +1149,84 @@
       } catch (e) {
         console.error(e);
       }
+    // Link Shortener
+    async function loadLinks() {
+      try {
+        const res = await fetch('/api/links');
+        const links = await res.json();
+        const tbody = document.getElementById('linksTableBody');
+        if (!links || links.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhum link encurtado ainda.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = links.map(l => `
+          <tr>
+            <td><code>/r/${l.code}</code></td>
+            <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${l.target_url}">${l.title || l.target_url}</td>
+            <td><span class="badge badge-sent" style="font-size:0.85rem;">${l.clicks} clique${l.clicks !== 1 ? 's' : ''}</span></td>
+            <td><small>${l.created_at ? new Date(l.created_at).toLocaleDateString('pt-BR') : '-'}</small></td>
+            <td>
+              <button class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem;" onclick="copyToClipboard('${l.short_url}')">Copiar</button>
+              <button class="btn btn-danger" style="padding:0.25rem 0.5rem; font-size:0.75rem; margin-left:0.25rem;" onclick="deleteLink('${l.code}')">✕</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function handleCreateLink(e) {
+      e.preventDefault();
+      const targetUrl = document.getElementById('linkTargetUrl').value;
+      const title = document.getElementById('linkTitle').value;
+      const customSlug = document.getElementById('linkCustomSlug').value;
+      const btn = document.getElementById('btnCreateLink');
+
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/links', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            target_url: targetUrl,
+            title: title,
+            custom_slug: customSlug
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Link encurtado criado com sucesso!');
+          document.getElementById('resultShortUrl').value = data.short_url;
+          document.getElementById('linkCreatedResult').style.display = 'block';
+          loadLinks();
+        } else {
+          showToast(`Erro: ${data.detail}`, true);
+        }
+      } catch (err) {
+        showToast(`Erro: ${err.message}`, true);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function copyResultLink() {
+      const input = document.getElementById('resultShortUrl');
+      navigator.clipboard.writeText(input.value);
+      showToast('Link encurtado copiado!');
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text);
+      showToast('Link copiado!');
+    }
+
+    async function deleteLink(code) {
+      if (!confirm(`Deseja excluir o link encurtado /r/${code}?`)) return;
+      await fetch(`/api/links/${code}`, { method: 'DELETE' });
+      showToast('Link removido.');
+      loadLinks();
     }
 
     // Init

@@ -39,6 +39,12 @@ class BlacklistAddRequest(BaseModel):
     reason: Optional[str] = "Solicitacao do cliente (Opt-out)"
 
 
+class LinkCreateRequest(BaseModel):
+    target_url: str = Field(..., example="https://chat.whatsapp.com/xyz123", description="URL de destino")
+    custom_slug: Optional[str] = Field(None, example="promo", description="Slug personalizado opcional")
+    title: Optional[str] = Field(None, example="Grupo VIP WhatsApp", description="Nome descritivo do link")
+
+
 class SmsLogEntry(BaseModel):
     id: str
     phone: str

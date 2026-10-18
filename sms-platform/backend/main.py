@@ -3,14 +3,15 @@ main.py - Servidor FastAPI para a Plataforma de Disparos SMS de Alta Entregabili
 """
 
 import os
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 from core.gsm import sanitize_for_gsm7, calculate_sms_segments
 from core.spintax import analyze_template_variations
 from core.opt_out import OptOutManager, normalize_phone_br
+from core.shortener import LinkShortener
 from services.opensms_client import OpenSmsClient
 from services.queue_manager import QueueManager
 from models.schemas import (
@@ -18,6 +19,7 @@ from models.schemas import (
     CampaignCreateRequest,
     SpintaxAnalysisRequest,
     BlacklistAddRequest,
+    LinkCreateRequest,
 )
 
 # Inicializacao
@@ -42,6 +44,7 @@ opensms_key = os.getenv("OPENSMS_API_KEY", "")
 sms_client = OpenSmsClient(base_url=opensms_url, api_key=opensms_key)
 opt_out_mgr = OptOutManager(storage_path="data/blacklist.json")
 queue_mgr = QueueManager(client=sms_client, opt_out=opt_out_mgr)
+shortener_mgr = LinkShortener(storage_path="data/links.json")
 
 
 # ---------------------------------------------
@@ -185,6 +188,49 @@ async def remove_from_blacklist(phone: str):
 @app.get("/api/logs")
 async def get_logs(limit: int = 50):
     return queue_mgr.get_logs(limit=limit)
+
+
+# ---------------------------------------------
+# Encurtador de Links Próprio com Rastreamento
+# ---------------------------------------------
+@app.post("/api/links")
+async def create_link(req: LinkCreateRequest, request: Request):
+    entry = shortener_mgr.create_short_link(
+        target_url=req.target_url,
+        custom_slug=req.custom_slug,
+        title=req.title
+    )
+    # Constrói a URL completa pública usando o Host da requisição
+    host = request.headers.get("host", "sms.ideiasmkt.com.br")
+    proto = request.headers.get("x-forwarded-proto", "https")
+    entry["short_url"] = f"{proto}://{host}/r/{entry['code']}"
+    return entry
+
+
+@app.get("/api/links")
+async def list_links(request: Request):
+    host = request.headers.get("host", "sms.ideiasmkt.com.br")
+    proto = request.headers.get("x-forwarded-proto", "https")
+    links = shortener_mgr.list_links()
+    for l in links:
+        l["short_url"] = f"{proto}://{host}/r/{l['code']}"
+    return links
+
+
+@app.delete("/api/links/{code}")
+async def delete_link(code: str):
+    removed = shortener_mgr.delete_link(code)
+    if not removed:
+        raise HTTPException(status_code=404, detail="Link não encontrado")
+    return {"success": True, "code": code}
+
+
+@app.get("/r/{code}")
+async def redirect_short_link(code: str):
+    target_url = shortener_mgr.get_and_record_click(code)
+    if not target_url:
+        raise HTTPException(status_code=404, detail="Link encurtado não encontrado ou expirado")
+    return RedirectResponse(url=target_url, status_code=307)
 
 
 # Montagem do Frontend estatico
