@@ -200,20 +200,25 @@ async def create_link(req: LinkCreateRequest, request: Request):
         custom_slug=req.custom_slug,
         title=req.title
     )
-    # Constrói a URL completa pública usando o Host da requisição
-    host = request.headers.get("host", "sms.ideiasmkt.com.br")
-    proto = request.headers.get("x-forwarded-proto", "https")
-    entry["short_url"] = f"{proto}://{host}/r/{entry['code']}"
+    # Sempre preferir o domínio raiz ultracurto qez.com.br para economizar caracteres no SMS
+    host = request.headers.get("host", "qez.com.br")
+    if "qez.com.br" in host:
+        domain = "qez.com.br"
+    else:
+        domain = host
+
+    # Sempre forçar https:// para navegadores mobile não bloquearem por segurança
+    entry["short_url"] = f"https://{domain}/r/{entry['code']}"
     return entry
 
 
 @app.get("/api/links")
 async def list_links(request: Request):
-    host = request.headers.get("host", "sms.ideiasmkt.com.br")
-    proto = request.headers.get("x-forwarded-proto", "https")
+    host = request.headers.get("host", "qez.com.br")
+    domain = "qez.com.br" if "qez.com.br" in host else host
     links = shortener_mgr.list_links()
     for l in links:
-        l["short_url"] = f"{proto}://{host}/r/{l['code']}"
+        l["short_url"] = f"https://{domain}/r/{l['code']}"
     return links
 
 
