@@ -18,18 +18,28 @@ class OpenSmsClient:
         self.api_key = api_key
         self.timeout = timeout
 
+    def update_credentials(self, api_key: str | None = None, base_url: str | None = None):
+        """Atualiza a chave de API ou URL em tempo de execução."""
+        if api_key is not None:
+            self.api_key = api_key.strip()
+        if base_url is not None:
+            self.base_url = base_url.strip().rstrip("/")
+
     async def check_health(self) -> Tuple[bool, str]:
         """Verifica se o servidor OpenSMS no celular esta alcancavel e respondendo."""
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.get(f"{self.base_url}/docs")
+                headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
+                resp = await client.get(f"{self.base_url}/docs", headers=headers)
                 if resp.status_code == 200:
-                    return True, "Servidor OpenSMS online e alcancavel via Tailscale."
-                return False, f"Resposta inesperada: status {resp.status_code}"
+                    return True, "Servidor OpenSMS online e alcançável via Tailscale."
+                return False, f"Servidor respondeu com status {resp.status_code}."
+        except httpx.ConnectError:
+            return False, "Conexão recusada na porta 9292. Abra o app OpenSMS no celular e inicie o serviço."
         except httpx.ConnectTimeout:
-            return False, "Timeout de conexao com o celular. Verifique se o OpenSMS e o Tailscale estao ativos."
+            return False, "Timeout ao conectar ao celular. Verifique se o OpenSMS e o Tailscale estão ativos."
         except Exception as e:
-            return False, f"Erro de conexao: {str(e)}"
+            return False, f"Erro de conexão com o celular: {str(e)}"
 
     async def send_sms(self, phone: str, message: str) -> Dict[str, Any]:
         """

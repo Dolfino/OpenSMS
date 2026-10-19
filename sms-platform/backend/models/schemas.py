@@ -53,5 +53,9 @@ class SmsLogEntry(BaseModel):
     segments: int
     status: str  # sent, failed, blacklisted, pending
     error: Optional[str] = None
-    campaign_id: Optional[str] = None
     timestamp: str
+
+
+class SettingsUpdateRequest(BaseModel):
+    api_key: Optional[str] = Field(None, example="osms_...", description="Chave de API do OpenSMS (Bearer Token)")
+    opensms_url: Optional[str] = Field(None, example="http://100.72.103.36:9292", description="URL do servidor OpenSMS")

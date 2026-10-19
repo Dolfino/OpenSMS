@@ -14,6 +14,7 @@ from core.gsm import sanitize_for_gsm7, calculate_sms_segments
 from core.spintax import analyze_template_variations
 from core.opt_out import OptOutManager, normalize_phone_br
 from core.shortener import LinkShortener
+from core.settings import SettingsManager
 from core.timezone import get_brazil_now
 from services.opensms_client import OpenSmsClient
 from services.queue_manager import QueueManager
@@ -23,6 +24,7 @@ from models.schemas import (
     SpintaxAnalysisRequest,
     BlacklistAddRequest,
     LinkCreateRequest,
+    SettingsUpdateRequest,
 )
 
 # Inicializacao
@@ -41,13 +43,52 @@ app.add_middleware(
 )
 
 # Servicos Compartilhados
-opensms_url = os.getenv("OPENSMS_URL", "http://localhost:9292")
-opensms_key = os.getenv("OPENSMS_API_KEY", "")
+settings_mgr = SettingsManager(storage_path="data/settings.json")
+current_settings = settings_mgr.get_settings()
 
-sms_client = OpenSmsClient(base_url=opensms_url, api_key=opensms_key)
+sms_client = OpenSmsClient(
+    base_url=current_settings["opensms_url"],
+    api_key=current_settings["api_key"]
+)
 opt_out_mgr = OptOutManager(storage_path="data/blacklist.json")
 queue_mgr = QueueManager(client=sms_client, opt_out=opt_out_mgr, storage_path="data/logs.json")
 shortener_mgr = LinkShortener(storage_path="data/links.json")
+
+
+# ---------------------------------------------
+# Rotas de Configurações Dinâmicas (API Key / OpenSMS URL)
+# ---------------------------------------------
+@app.get("/api/settings")
+async def get_settings():
+    is_online, msg = await sms_client.check_health()
+    settings = settings_mgr.get_settings()
+    return {
+        "api_key": settings["api_key"],
+        "opensms_url": settings["opensms_url"],
+        "is_connected": is_online,
+        "connection_detail": msg
+    }
+
+
+@app.post("/api/settings")
+async def update_settings(req: SettingsUpdateRequest):
+    updated = settings_mgr.update_settings(
+        api_key=req.api_key,
+        opensms_url=req.opensms_url
+    )
+    sms_client.update_credentials(
+        api_key=updated["api_key"],
+        base_url=updated["opensms_url"]
+    )
+    is_online, msg = await sms_client.check_health()
+    return {
+        "success": True,
+        "message": "Configurações atualizadas com sucesso!",
+        "api_key": updated["api_key"],
+        "opensms_url": updated["opensms_url"],
+        "is_connected": is_online,
+        "connection_detail": msg
+    }
 
 
 # ---------------------------------------------
